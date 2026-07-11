@@ -1,0 +1,89 @@
+from data.database import db
+
+
+# ==================== MOVIES ====================
+
+async def add_movie(code: str, title: str | None, file_id: str, file_type: str, added_by: int):
+    query = """
+    INSERT INTO movies (code, title, file_id, file_type, added_by)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id;
+    """
+    return await db.execute(query, code, title, file_id, file_type, added_by, fetchval=True)
+
+
+async def get_movie_by_code(code: str):
+    query = "SELECT * FROM movies WHERE code = $1;"
+    return await db.execute(query, code, fetchrow=True)
+
+
+async def check_code_exists(code: str) -> bool:
+    query = "SELECT EXISTS(SELECT 1 FROM movies WHERE code = $1);"
+    return await db.execute(query, code, fetchval=True)
+
+
+async def delete_movie(code: str):
+    query = "DELETE FROM movies WHERE code = $1;"
+    return await db.execute(query, code)
+
+
+async def save_preview_path(code: str, preview_path: str):
+    query = "UPDATE movies SET preview_path = $1 WHERE code = $2;"
+    await db.execute(query, preview_path, code)
+
+
+async def get_all_movies_count() -> int:
+    query = "SELECT COUNT(*) FROM movies;"
+    return await db.execute(query, fetchval=True)
+
+
+async def get_all_movies():
+    query = "SELECT * FROM movies ORDER BY added_date DESC;"
+    return await db.execute(query, fetch=True)
+
+
+# ==================== USERS ====================
+
+async def add_user(user_id: int, username: str | None, full_name: str | None):
+    query = """
+    INSERT INTO users (user_id, username, full_name)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (user_id) DO NOTHING;
+    """
+    await db.execute(query, user_id, username, full_name)
+
+
+async def check_user_exists(user_id: int) -> bool:
+    query = "SELECT EXISTS(SELECT 1 FROM users WHERE user_id = $1);"
+    return await db.execute(query, user_id, fetchval=True)
+
+
+async def get_all_users():
+    query = "SELECT user_id FROM users;"
+    return await db.execute(query, fetch=True)
+
+
+async def get_users_count() -> int:
+    query = "SELECT COUNT(*) FROM users;"
+    return await db.execute(query, fetchval=True)
+
+
+# ==================== REQUIRED CHANNELS (majburiy obuna) ====================
+
+async def add_required_channel(channel_id: int, username: str | None, name: str):
+    query = """
+    INSERT INTO required_channels (channel_id, channel_username, channel_name)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (channel_id) DO NOTHING;
+    """
+    await db.execute(query, channel_id, username, name)
+
+
+async def get_required_channels():
+    query = "SELECT * FROM required_channels;"
+    return await db.execute(query, fetch=True)
+
+
+async def delete_required_channel(channel_id: int):
+    query = "DELETE FROM required_channels WHERE channel_id = $1;"
+    await db.execute(query, channel_id)

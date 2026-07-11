@@ -1,0 +1,50 @@
+# ==================== MAXFIY MA'LUMOTLAR ====================
+.env
+.env.*
+!.env.example
+
+# ==================== PYTHON ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# ==================== VIRTUAL ENVIRONMENT ====================
+venv/
+env/
+ENV/
+.venv/
+
+# ==================== LOYIHA VAQTINCHALIK FAYLLARI ====================
+# video_utils.py shu yerga vaqtinchalik video/preview fayllarni yuklaydi
+temp/
+
+# backup.py shu yerga .sql zaxira fayllarini yaratadi (kanalga yuborilgach o'chadi)
+backups/
+
+# Instagram uchun vaqtincha ochiq URL bilan serve qilinadigan fayllar
+public_previews/
+
+# ==================== IDE / EDITOR ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==================== OS ====================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==================== LOGLAR ====================
+*.log
+logs/
+
+# ==================== DATABASE (agar lokal SQLite bo'lsa) ====================
+*.db
+*.sqlite3
+
+# ==================== BOSHQA ====================
+*.bak
+*.tmp
