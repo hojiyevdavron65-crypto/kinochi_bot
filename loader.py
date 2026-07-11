@@ -1,19 +1,23 @@
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.telegram import TelegramAPIServer
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from data.config import config
 
-# Bot obyekti — Telegram API bilan aloqa qiluvchi asosiy obyekt.
-# DefaultBotProperties orqali parse_mode="HTML" ni global qilib belgilaymiz —
-# shunda har bir message.answer() ichida alohida parse_mode="HTML" yozish shart emas.
+# Local Bot API serverga ulanish — 20 MB o'rniga 2000 MB (2 GB) gacha
+# fayl yuklab olish imkonini beradi.
+local_server = TelegramAPIServer.from_base(
+    "http://telegram-bot-api:8081",
+    is_local=True,
+)
+
 bot = Bot(
     token=config.BOT_TOKEN,
     default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    session=AiohttpSession(api=local_server),
 )
 
-# MemoryStorage — FSM holatlarini (masalan AddMovie.waiting_for_code) RAM'da saqlaydi.
-# Bot qayta ishga tushirilsa, hozirgi holatlar (state) yo'qoladi — kichik/o'rta loyihalar
-# uchun yetarli. Katta yuklamada Redis storage'ga almashtirish mumkin bo'ladi.
 dp = Dispatcher(storage=MemoryStorage())
