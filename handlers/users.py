@@ -1,26 +1,15 @@
 from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart, CommandObject
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery
 
 from data.db_commands import add_user, check_user_exists, get_movie_by_code
 from filters.filters import IsSubscribed, get_unsubscribed_channels
+from keyboards.inline_keyboards import get_subscription_keyboard
 
 user_router = Router()
 
 
 # ==================== YORDAMCHI FUNKSIYALAR ====================
-
-def build_subscription_keyboard(channels: list[dict]) -> InlineKeyboardMarkup:
-    buttons = []
-    for channel in channels:
-        username = channel["channel_username"]
-        url = f"https://t.me/{username}" if username else None
-        if url:
-            buttons.append([InlineKeyboardButton(text=f"📢 {channel['channel_name']}", url=url)])
-
-    buttons.append([InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_sub")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
 
 async def send_movie(message: Message, movie):
     caption = f"🎬 {movie['title']}" if movie["title"] else None
@@ -43,13 +32,13 @@ async def cmd_start(message: Message, command: CommandObject, bot: Bot):
 
     unsubscribed = await get_unsubscribed_channels(bot, message.from_user.id)
     if unsubscribed:
+        keyboard = await get_subscription_keyboard(bot, unsubscribed)
         await message.answer(
             "📢 Botdan foydalanish uchun quyidagi kanallarga obuna bo'ling:",
-            reply_markup=build_subscription_keyboard(unsubscribed),
+            reply_markup=keyboard,
         )
         return
 
-    # Kanaldagi "Kinoni olish" tugmasidan deep-link orqali kelgan bo'lsa
     if command.args:
         code = command.args.strip()
         movie = await get_movie_by_code(code)
@@ -104,7 +93,8 @@ async def search_movie(message: Message):
 @user_router.message(F.text.regexp(r"^\S+$"))
 async def require_subscription(message: Message, bot: Bot):
     unsubscribed = await get_unsubscribed_channels(bot, message.from_user.id)
+    keyboard = await get_subscription_keyboard(bot, unsubscribed)
     await message.answer(
         "📢 Botdan foydalanish uchun quyidagi kanallarga obuna bo'ling:",
-        reply_markup=build_subscription_keyboard(unsubscribed),
+        reply_markup=keyboard,
     )

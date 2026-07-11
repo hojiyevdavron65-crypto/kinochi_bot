@@ -1,32 +1,10 @@
-# keyboards/inline_keyboards.py
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-def get_subscription_keyboard(channel_url: str) -> InlineKeyboardMarkup:
-    """ Obuna bo'lish va tekshirish tugmalarini qaytaradi """
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="Kanalga obuna bo'lish 📢", url=channel_url)
-            ],
-            [
-                InlineKeyboardButton(text="Tekshirish ✅", callback_data="checkup")
-            ],
-        ]
-    )
-    return keyboard
-
-# keyboards/inline_keyboards.py faylining adminlar uchun:
-
+from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from data.config import config
 
 
 def get_movie_deeplink_keyboard(code: str) -> InlineKeyboardMarkup:
-    """
-    Kanaldagi preview post ostiga chiqadigan tugma.
-    Bosilganda foydalanuvchi botga o'tib, avtomatik to'liq kinoni oladi.
-    """
     url = f"https://t.me/{config.BOT_USERNAME}?start={code}"
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -35,30 +13,32 @@ def get_movie_deeplink_keyboard(code: str) -> InlineKeyboardMarkup:
     )
 
 
-def get_subscription_keyboard(channels: list[dict]) -> InlineKeyboardMarkup:
+async def get_subscription_keyboard(bot: Bot, channels: list[dict]) -> InlineKeyboardMarkup:
     """
     Foydalanuvchi obuna bo'lmagan kanallar ro'yxati + "Tekshirish" tugmasi.
+
+    Public kanallar uchun — @username orqali oddiy havola.
+    Private kanallar uchun — bot avtomatik invite link yaratadi
+    (bot kanalda admin bo'lgani uchun bu har doim ishlaydi).
     """
     buttons = []
+
     for channel in channels:
         username = channel["channel_username"]
+
         if username:
             url = f"https://t.me/{username}"
-            buttons.append([InlineKeyboardButton(text=f"📢 {channel['channel_name']}", url=url)])
+        else:
+            try:
+                invite = await bot.create_chat_invite_link(chat_id=channel["channel_id"])
+                url = invite.invite_link
+            except Exception:
+                # Agar invite link yaratib bo'lmasa (masalan bot admin emas),
+                # bu kanalni tugmalar ro'yxatiga qo'shmaymiz — lekin obuna
+                # tekshiruvida u baribir hisobga olinadi.
+                continue
+
+        buttons.append([InlineKeyboardButton(text=f"📢 {channel['channel_name']}", url=url)])
 
     buttons.append([InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_sub")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
-def get_confirm_delete_keyboard(code: str) -> InlineKeyboardMarkup:
-    """
-    Kino o'chirishdan oldin admin uchun tasdiqlash tugmasi (xato bosishning oldini olish).
-    """
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="✅ Ha, o'chirish", callback_data=f"confirm_delete:{code}"),
-                InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel_delete"),
-            ]
-        ]
-    )
