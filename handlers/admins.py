@@ -1,11 +1,10 @@
 import asyncio
-import os
 
 from aiogram import Router, F
 from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, FSInputFile
+from aiogram.types import Message
 
 from data.config import config
 from data.db_commands import (
@@ -19,8 +18,6 @@ from data.db_commands import (
 )
 from filters.filters import IsAdmin
 from handlers.admin_states import AddMovie, DeleteMovie, Broadcast
-from keyboards.inline_keyboards import get_movie_deeplink_keyboard
-from utils.video_utils import download_telegram_file, extract_preview_clip, cleanup_files
 
 admin_router = Router()
 admin_router.message.filter(IsAdmin())
@@ -45,6 +42,7 @@ async def process_movie_file(message: Message, state: FSMContext):
         file_id = message.document.file_id
         file_type = "document"
 
+    # Faylni zaxira sifatida yashirin arxiv kanaliga forward qilamiz
     await message.forward(chat_id=config.ARCHIVE_CHANNEL_ID)
 
     await state.update_data(file_id=file_id, file_type=file_type)
@@ -75,36 +73,12 @@ async def process_movie_code(message: Message, state: FSMContext):
 
 @admin_router.message(AddMovie.waiting_for_title, F.text)
 async def process_movie_title(message: Message, state: FSMContext):
-    await state.update_data(title=message.text.strip())
-    await message.answer(
-        "📄 Endi kino haqida qisqacha, qiziqarli ma'lumot yozing "
-        "(janr, yil, syujet) — bu asosiy kanalga e'lon sifatida chiqadi.\n\n"
-        "Yozmoqchi bo'lmasangiz /skip bosing:"
-    )
-    await state.set_state(AddMovie.waiting_for_description)
-
-
-@admin_router.message(AddMovie.waiting_for_description, Command("skip"))
-async def skip_description(message: Message, state: FSMContext):
-    await finalize_movie(message, state, description=None)
-
-
-@admin_router.message(AddMovie.waiting_for_description, F.text)
-async def process_movie_description(message: Message, state: FSMContext):
-    await finalize_movie(message, state, description=message.text.strip())
-
-
-async def finalize_movie(message: Message, state: FSMContext, description: str | None):
-    """
-    Kino qo'shish jarayonining yakuniy bosqichi:
-    1. Kinoni bazaga saqlaydi
-    2. Agar video bo'lsa — preview klip kesib, asosiy kanalga joylaydi
-    """
+    title = message.text.strip()
     data = await state.get_data()
 
     await add_movie(
         code=data["code"],
-        title=data.get("title"),
+        title=title,
         file_id=data["file_id"],
         file_type=data["file_type"],
         added_by=message.from_user.id,
@@ -113,54 +87,10 @@ async def finalize_movie(message: Message, state: FSMContext, description: str |
     await message.answer(
         f"✅ Kino bazaga qo'shildi!\n\n"
         f"🔢 Kod: <b>{data['code']}</b>\n"
-        f"🎬 Nom: {data.get('title') or '—'}",
+        f"🎬 Nom: {title}",
         parse_mode="HTML",
     )
     await state.clear()
-
-    if data["file_type"] == "video":
-        status = await message.answer("⏳ Kanal uchun preview tayyorlanmoqda...")
-        await post_teaser_to_channel(
-            bot=message.bot,
-            file_id=data["file_id"],
-            code=data["code"],
-            title=data.get("title"),
-            description=description,
-        )
-        await status.edit_text("✅ Kanalga e'lon joylandi!")
-
-
-async def post_teaser_to_channel(
-    bot, file_id: str, code: str, title: str | None, description: str | None
-) -> None:
-    """
-    Kinoning qisqa preview klipini kesib, asosiy kanalga "Kinoni olish"
-    tugmasi bilan birga joylaydi.
-    """
-    original_path = None
-    preview_path = None
-    try:
-        original_path = await download_telegram_file(bot, file_id)
-        preview_path = extract_preview_clip(original_path, duration=30)
-
-        caption_parts = [f"🎬 <b>{title}</b>"] if title else ["🎬 <b>Yangi kino</b>"]
-        if description:
-            caption_parts.append(f"\n{description}")
-        caption_parts.append("\n\n👇 Kinoni to'liq ko'rish uchun tugmani bosing")
-        caption = "\n".join(caption_parts)
-
-        await bot.send_video(
-            chat_id=config.MAIN_CHANNEL_ID,
-            video=FSInputFile(preview_path),
-            caption=caption,
-            parse_mode="HTML",
-            reply_markup=get_movie_deeplink_keyboard(code),
-        )
-    except Exception as e:
-        await bot.send_message(chat_id=config.ADMINS[0], text=f"⚠️ Preview joylashda xatolik: {e}")
-    finally:
-        # Preview kanalga yuborilgach, endi lokal fayllar kerak emas — diskni tozalaymiz
-        cleanup_files(original_path, preview_path)
 
 
 # ==================== KINO O'CHIRISH ====================
@@ -239,7 +169,6 @@ async def process_broadcast(message: Message, state: FSMContext):
         except Exception:
             failed += 1
 
-        # Har 30 xabardan keyin 1 soniya kutamiz — Telegram flood-limitiga tushmaslik uchun
         if i % 30 == 0:
             await asyncio.sleep(1)
             await status_msg.edit_text(f"⏳ Yuborilmoqda... {i}/{len(users)}")

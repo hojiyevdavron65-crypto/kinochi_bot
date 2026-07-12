@@ -46,3 +46,11 @@ async def get_unsubscribed_channels(bot: Bot, user_id: int) -> list[dict]:
     Foydalanuvchi obuna bo'lmagan kanallar ro'yxatini qaytaradi.
     Handler ichida "Obuna bo'ling" tugmalarini chiqarish uchun ishlatiladi.
     """
+    channels = await get_required_channels()
+    unsubscribed = []
+
+    for channel in channels:
+        if not await _is_user_subscribed(bot, channel["channel_id"], user_id):
+            unsubscribed.append(channel)
+
+    return unsubscribed

@@ -5,7 +5,6 @@ class AddMovie(StatesGroup):
     waiting_for_file = State()
     waiting_for_code = State()
     waiting_for_title = State()
-    waiting_for_description = State()
 
 
 class DeleteMovie(StatesGroup):
