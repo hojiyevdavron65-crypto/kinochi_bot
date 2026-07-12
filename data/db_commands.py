@@ -87,3 +87,18 @@ async def get_required_channels():
 async def delete_required_channel(channel_id: int):
     query = "DELETE FROM required_channels WHERE channel_id = $1;"
     await db.execute(query, channel_id)
+
+# ==================== JOIN REQUESTS (so'rov yuborilganini belgilash) ====================
+
+async def add_join_request(user_id: int, channel_id: int):
+    query = """
+    INSERT INTO join_requests (user_id, channel_id)
+    VALUES ($1, $2)
+    ON CONFLICT (user_id, channel_id) DO NOTHING;
+    """
+    await db.execute(query, user_id, channel_id)
+
+
+async def has_join_request(user_id: int, channel_id: int) -> bool:
+    query = "SELECT EXISTS(SELECT 1 FROM join_requests WHERE user_id = $1 AND channel_id = $2);"
+    return await db.execute(query, user_id, channel_id, fetchval=True)

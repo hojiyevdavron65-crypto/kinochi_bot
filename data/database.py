@@ -46,6 +46,7 @@ class Database:
         await self._create_table_movies()
         await self._create_table_users()
         await self._create_table_required_channels()
+        await self._create_table_join_requests()
 
     async def _create_table_movies(self):
         query = """
@@ -83,6 +84,18 @@ class Database:
         );
         """
         await self.execute(query)
+
+        async def _create_table_join_requests(self):
+            query = """
+            CREATE TABLE IF NOT EXISTS join_requests (
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL,
+                channel_id BIGINT NOT NULL,
+                requested_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE(user_id, channel_id)
+            );
+            """
+            await self.execute(query)
 
 
 db = Database()
