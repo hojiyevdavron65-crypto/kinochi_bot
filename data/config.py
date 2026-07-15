@@ -26,6 +26,11 @@ class Config:
     DB_PASSWORD: str = os.getenv("DB_PASSWORD")
     DB_NAME: str = os.getenv("DB_NAME")
 
+    # ---------- MIGRATSIYA ----------
+    OLD_BOT_USERNAME: str = os.getenv("OLD_BOT_USERNAME")
+    MIGRATE_START_FROM: int = int(os.getenv("MIGRATE_START_FROM", 1))
+    MIGRATE_COUNT: int = int(os.getenv("MIGRATE_COUNT", 50))
+
 
     def __post_init__(self):
         admins_str = os.getenv("ADMINS", "")
