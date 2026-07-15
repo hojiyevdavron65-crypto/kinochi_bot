@@ -102,3 +102,30 @@ async def add_join_request(user_id: int, channel_id: int):
 async def has_join_request(user_id: int, channel_id: int) -> bool:
     query = "SELECT EXISTS(SELECT 1 FROM join_requests WHERE user_id = $1 AND channel_id = $2);"
     return await db.execute(query, user_id, channel_id, fetchval=True)
+
+# ==================== MOVIE EPISODES (serial qismlari) ====================
+
+async def add_movie_episode(code: str, episode_number: int, file_id: str, file_type: str):
+    query = """
+    INSERT INTO movie_episodes (code, episode_number, file_id, file_type)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (code, episode_number) DO NOTHING;
+    """
+    await db.execute(query, code, episode_number, file_id, file_type)
+
+
+async def get_movie_episodes(code: str):
+    query = "SELECT * FROM movie_episodes WHERE code = $1 ORDER BY episode_number ASC;"
+    return await db.execute(query, code, fetch=True)
+
+
+async def code_exists_anywhere(code: str) -> bool:
+    """Kod - oddiy kino (movies) yoki serial (movie_episodes) sifatida mavjudligini tekshiradi."""
+    query = """
+    SELECT EXISTS(
+        SELECT 1 FROM movies WHERE code = $1
+        UNION
+        SELECT 1 FROM movie_episodes WHERE code = $1
+    );
+    """
+    return await db.execute(query, code, fetchval=True)

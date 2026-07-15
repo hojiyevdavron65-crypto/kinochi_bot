@@ -2,7 +2,7 @@ from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart, CommandObject
 from aiogram.types import Message, CallbackQuery
 
-from data.db_commands import add_user, check_user_exists, get_movie_by_code
+from data.db_commands import add_user, check_user_exists, get_movie_by_code, get_movie_episodes
 from filters.filters import IsSubscribed, get_unsubscribed_channels
 from keyboards.inline_keyboards import get_subscription_keyboard
 
@@ -18,6 +18,15 @@ async def send_movie(message: Message, movie):
     else:
         await message.answer_document(document=movie["file_id"], caption=caption, parse_mode="HTML")
 
+async def send_episodes(message: Message, episodes):
+    """Serial bo'lsa, barcha qismlarni ketma-ket yuboradi."""
+    await message.answer(f"🎬 Jami {len(episodes)} qism topildi, yuborilmoqda...")
+    for ep in episodes:
+        caption = f"📺 {ep['episode_number']}-qism"
+        if ep["file_type"] == "video":
+            await message.answer_video(video=ep["file_id"], caption=caption)
+        else:
+            await message.answer_document(document=ep["file_id"], caption=caption)
 
 # ==================== /start ====================
 
@@ -79,8 +88,14 @@ async def check_subscription_callback(callback: CallbackQuery, bot: Bot):
 @user_router.message(IsSubscribed(), F.text.regexp(r"^\S+$"))
 async def search_movie(message: Message):
     code = message.text.strip()
-    movie = await get_movie_by_code(code)
 
+    # Avval serial (ko'p qismli) ekanligini tekshiramiz
+    episodes = await get_movie_episodes(code)
+    if episodes:
+        await send_episodes(message, episodes)
+        return
+
+    movie = await get_movie_by_code(code)
     if not movie:
         await message.answer(f"❌ <b>{code}</b> kodli kino topilmadi.", parse_mode="HTML")
         return
