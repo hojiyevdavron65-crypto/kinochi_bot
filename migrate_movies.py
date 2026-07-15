@@ -16,40 +16,54 @@ from data.config import config
 from data.database import db
 from data.db_commands import add_movie, check_code_exists
 
-# ==================== SOZLAMALAR (config.py orqali .env dan) ====================
+# ==================== SOZLAMALAR ====================
 
 SESSION_NAME = "migrate_userbot"
 
-# Anti-ban uchun har bir amaldan keyingi kutish oralig'i (soniyalarda)
 MIN_DELAY = 2.3
 MAX_DELAY = 2.8
 
-# Eski bot javob bermasa, necha soniya kutib, keyin o'tkazib yuborish
 RESPONSE_TIMEOUT = 20
 
-# Bu skriptni qo'shgan "admin" sifatida qaysi Telegram ID yozilsin
 ADDED_BY_ID = config.ADMINS[0] if config.ADMINS else 0
 
 
 # ==================== USERBOT ====================
 
-app = Client(SESSION_NAME, api_id=config.TG_API_ID, api_hash=config.TG_API_HASH)
+app = Client(SESSION_NAME, api_id=config.TELEGRAM_API_ID, api_hash=config.TELEGRAM_API_HASH)
 
+# "Kutish"ni saqlab turuvchi global o'zgaruvchi.
+# Xabar yuborishdan OLDIN yaratiladi — shunda tez javob beruvchi botlarda
+# ham javobni o'tkazib yubormaymiz (race condition oldini olish).
 pending_future: asyncio.Future | None = None
 
 
-@app.on_message(filters.chat(config.OLD_BOT_USERNAME) & (filters.video | filters.document))
+@app.on_message(filters.chat(config.OLD_BOT_USERNAME))
 async def catch_bot_reply(client: Client, message: Message):
-    """Eski botdan video/document kelganda, kutayotgan javobga topshiramiz."""
+    """
+    Eski botdan KELGAN HAR QANDAY xabarni ushlaydi (debug uchun),
+    lekin faqat video/document bo'lsa, kutuvga topshiradi.
+    """
+    print(
+        f"📨 Eski botdan xabar keldi — "
+        f"text={bool(message.text)}, video={bool(message.video)}, "
+        f"document={bool(message.document)}"
+    )
+
+    if not (message.video or message.document):
+        return
+
     global pending_future
     if pending_future and not pending_future.done():
         pending_future.set_result(message)
 
 
 async def wait_for_reply(timeout: int = RESPONSE_TIMEOUT) -> Message | None:
-    """Eski botdan javob kelishini kutadi, timeout bo'lsa None qaytaradi."""
+    """
+    Eski botdan javob kelishini kutadi. `pending_future` chaqiruvchi tomonidan
+    OLDINDAN yaratilgan bo'lishi shart (xabar yuborishdan oldin).
+    """
     global pending_future
-    pending_future = asyncio.get_event_loop().create_future()
     try:
         return await asyncio.wait_for(pending_future, timeout=timeout)
     except asyncio.TimeoutError:
@@ -59,6 +73,8 @@ async def wait_for_reply(timeout: int = RESPONSE_TIMEOUT) -> Message | None:
 
 
 async def migrate():
+    global pending_future
+
     await db.create_pool()
 
     new_code = config.MIGRATE_START_FROM
@@ -71,6 +87,9 @@ async def migrate():
             print(f"⚠️  Kod {code_str} allaqachon bazada mavjud, o'tkazib yuborildi.")
             new_code += 1
             continue
+
+        # Avval "kutish"ni tayyorlab qo'yamiz — keyin xabar yuboramiz
+        pending_future = asyncio.get_event_loop().create_future()
 
         print(f"📤 {old_number}-raqam eski botga yuborilmoqda...")
         await app.send_message(config.OLD_BOT_USERNAME, str(old_number))

@@ -30,6 +30,8 @@ class Config:
     OLD_BOT_USERNAME: str = os.getenv("OLD_BOT_USERNAME")
     MIGRATE_START_FROM: int = int(os.getenv("MIGRATE_START_FROM", 1))
     MIGRATE_COUNT: int = int(os.getenv("MIGRATE_COUNT", 50))
+    TELEGRAM_API_ID: int = int(os.getenv("TELEGRAM_API_ID", 0))
+    TELEGRAM_API_HASH: str = os.getenv("TELEGRAM_API_HASH")
 
 
     def __post_init__(self):
