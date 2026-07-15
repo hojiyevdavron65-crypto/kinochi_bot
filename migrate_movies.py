@@ -69,13 +69,13 @@ async def migrate():
 
     # Pyrogram session'ga arxiv kanalini "tanitib qo'yamiz" — aks holda
     # yangi sessiyada bu kanal "topilmadi" xatosi chiqadi.
-    try:
-        await app.get_chat(config.ARCHIVE_CHANNEL_ID)
-        print(f"✅ Arxiv kanal tanildi: {config.ARCHIVE_CHANNEL_ID}")
-    except Exception as e:
-        print(f"❌ Arxiv kanalni tanib bo'lmadi: {e}")
-        print("Userbot akkaunt shu kanalga a'zo ekanligini tekshiring.")
-        return
+    print("📂 Barcha dialoglar yuklanmoqda (bir martalik, biroz vaqt olishi mumkin)...")
+    count = 0
+    async for dialog in app.get_dialogs():
+        count += 1
+        if dialog.chat.id == config.ARCHIVE_CHANNEL_ID:
+            print(f"✅ Arxiv kanal topildi: {dialog.chat.title}")
+    print(f"📂 Jami {count} ta dialog yuklandi.")
 
     new_code = config.MIGRATE_START_FROM
     print(f"🚀 Ko'chirish boshlandi. START_FROM={config.MIGRATE_START_FROM}, COUNT={config.MIGRATE_COUNT}")
