@@ -32,18 +32,12 @@ ADDED_BY_ID = config.ADMINS[0] if config.ADMINS else 0
 
 app = Client(SESSION_NAME, api_id=config.TELEGRAM_API_ID, api_hash=config.TELEGRAM_API_HASH)
 
-# "Kutish"ni saqlab turuvchi global o'zgaruvchi.
-# Xabar yuborishdan OLDIN yaratiladi — shunda tez javob beruvchi botlarda
-# ham javobni o'tkazib yubormaymiz (race condition oldini olish).
 pending_future: asyncio.Future | None = None
 
 
 @app.on_message(filters.chat(config.OLD_BOT_USERNAME))
 async def catch_bot_reply(client: Client, message: Message):
-    """
-    Eski botdan KELGAN HAR QANDAY xabarni ushlaydi (debug uchun),
-    lekin faqat video/document bo'lsa, kutuvga topshiradi.
-    """
+    """Eski botdan kelgan xabarni ushlaydi, kutuvga topshiradi (video/document bo'lsa)."""
     print(
         f"📨 Eski botdan xabar keldi — "
         f"text={bool(message.text)}, video={bool(message.video)}, "
@@ -59,10 +53,6 @@ async def catch_bot_reply(client: Client, message: Message):
 
 
 async def wait_for_reply(timeout: int = RESPONSE_TIMEOUT) -> Message | None:
-    """
-    Eski botdan javob kelishini kutadi. `pending_future` chaqiruvchi tomonidan
-    OLDINDAN yaratilgan bo'lishi shart (xabar yuborishdan oldin).
-    """
     global pending_future
     try:
         return await asyncio.wait_for(pending_future, timeout=timeout)
@@ -88,7 +78,6 @@ async def migrate():
             new_code += 1
             continue
 
-        # Avval "kutish"ni tayyorlab qo'yamiz — keyin xabar yuboramiz
         pending_future = asyncio.get_event_loop().create_future()
 
         print(f"📤 {old_number}-raqam eski botga yuborilmoqda...")
@@ -112,8 +101,6 @@ async def migrate():
             await asyncio.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
             continue
 
-        # Arxiv kanaliga nusxa — ESKI caption'ni e'tiborsiz qoldirib,
-        # YANGI caption sifatida faqat kod raqamini qo'yamiz
         await reply.copy(config.ARCHIVE_CHANNEL_ID, caption=code_str)
 
         await add_movie(
@@ -132,11 +119,15 @@ async def migrate():
     await db.close_pool()
     print("🎉 Ko'chirish yakunlandi!")
 
+    # Migratsiya tugagach, dasturni to'xtatamiz
+    app.stop()
 
-async def main():
-    async with app:
-        await migrate()
+
+async def start_migration():
+    await migrate()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    app.start()
+    asyncio.get_event_loop().run_until_complete(migrate())
+    app.stop()
