@@ -1,0 +1,34 @@
+#BOT_TOKEN=8330988529:AAEXAX3JYYHBtANDfPTEJSgTAg-sdwm9ZwE
+#ADMINS=6240885361,
+#DB_USER=postgres
+#DB_PASS=1
+#DB_NAME=kinochi_db
+#DB_HOST=localhost
+#DB_PORT=5432
+
+# ============ BOT ============
+BOT_TOKEN=8330988529:AAEXAX3JYYHBtANDfPTEJSgTAg-sdwm9ZwE
+BOT_USERNAME=@kino_officalbot
+
+# ============ ADMINLAR ============
+# Bir nechta bo'lsa vergul bilan ajrating: 123456789,987654321
+ADMINS=6240885361,
+
+# ============ KANALLAR ============
+# Kinolar zaxira sifatida forward qilinadigan yashirin kanal
+ARCHIVE_CHANNEL_ID=-1004425629975
+
+# Database backup fayllari yuboriladigan maxfiy kanal
+BACKUP_CHANNEL_ID=-1004366069391
+
+# Preview/teaser postlar chiqadigan asosiy ochiq kanal
+MAIN_CHANNEL_ID=-1004366069391
+
+# ============ DATABASE (PostgreSQL) ============
+DB_HOST=db
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=1
+DB_NAME=kinochi_bot
+
+
