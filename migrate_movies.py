@@ -82,7 +82,7 @@ def build_user_caption(new_code: str, original: str | None) -> str:
     - Eski ma'lumotlar (tozalangan)
     - Bot username
     """
-    footer = f"🤖 Bizning bot: @{config.BOT_USERNAME}"
+    footer = f"🤖 Bizning bot: {config.BOT_USERNAME}"
     body = clean_caption(original)
 
     if body:
