@@ -1,5 +1,4 @@
 import asyncpg
-
 from data.config import config
 
 
@@ -47,19 +46,27 @@ class Database:
         await self._create_table_users()
         await self._create_table_required_channels()
         await self._create_table_join_requests()
-        await self._create_table_movie_episodes()
 
     async def _create_table_movies(self):
+        """
+        Barcha kinolar va serial qismlari shu bitta jadvalda:
+        - Oddiy kino: episode_number = NULL
+        - Serial qismlari: episode_number = 1, 2, 3...
+        - archive_caption: arxiv kanalga yuboriladigan caption
+        - user_caption: foydalanuvchiga yuboriladigan caption
+        """
         query = """
         CREATE TABLE IF NOT EXISTS movies (
             id SERIAL PRIMARY KEY,
-            code VARCHAR(50) UNIQUE NOT NULL,
-            title VARCHAR(255),
+            code VARCHAR(50) NOT NULL,
+            episode_number INTEGER DEFAULT NULL,
+            archive_caption TEXT,
+            user_caption TEXT,
             file_id TEXT NOT NULL,
             file_type VARCHAR(20) NOT NULL,
-            preview_path TEXT,
             added_by BIGINT,
-            added_date TIMESTAMP DEFAULT NOW()
+            added_date TIMESTAMP DEFAULT NOW(),
+            UNIQUE(code, episode_number)
         );
         """
         await self.execute(query)
@@ -94,19 +101,6 @@ class Database:
             channel_id BIGINT NOT NULL,
             requested_at TIMESTAMP DEFAULT NOW(),
             UNIQUE(user_id, channel_id)
-        );
-        """
-        await self.execute(query)
-
-    async def _create_table_movie_episodes(self):
-        query = """
-        CREATE TABLE IF NOT EXISTS movie_episodes (
-            id SERIAL PRIMARY KEY,
-            code VARCHAR(50) NOT NULL,
-            episode_number INTEGER NOT NULL,
-            file_id TEXT NOT NULL,
-            file_type VARCHAR(20) NOT NULL,
-            UNIQUE(code, episode_number)
         );
         """
         await self.execute(query)
